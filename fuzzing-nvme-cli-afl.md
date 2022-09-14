@@ -9,29 +9,29 @@ Steps:
 4. Add `AFL_INIT_ARGV();` to the beginning of `main()` in `nvme.c` of nvme-cli.
 	a. This replaces the argv array with input from stdin.
 5. Run the `build_with_afl.sh` script in nvme-cli:
-```bash
-#!/bin/bash
+	```bash
+	#!/bin/bash
 
-AFL_ROOT_DIR="$HOME/Projects/AFLplusplus"
-BUILD_DIR="build"
-export CC="$AFL_ROOT_DIR/afl-clang-fast"
-export CXX="$AFL_ROOT_DIR/afl-clang-fast++"
-export LD="$AFL_ROOT_DIR/afl-clang-fast"
-meson "$BUILD_DIR"
-ninja -C "$BUILD_DIR"
-```
+	AFL_ROOT_DIR="$HOME/Projects/AFLplusplus"
+	BUILD_DIR="build"
+	export CC="$AFL_ROOT_DIR/afl-clang-fast"
+	export CXX="$AFL_ROOT_DIR/afl-clang-fast++"
+	export LD="$AFL_ROOT_DIR/afl-clang-fast"
+	meson "$BUILD_DIR"
+	ninja -C "$BUILD_DIR"
+	```
 6. Create fuzz script:
-```bash
-#!/bin/bash
+	```bash
+	#!/bin/bash
 
-AFL_FUZZ="$HOME/Projects/AFLplusplus/afl-fuzz"
-NVME_CLI="$HOME/Projects/nvme-cli/build/nvme"
+	AFL_FUZZ="$HOME/Projects/AFLplusplus/afl-fuzz"
+	NVME_CLI="$HOME/Projects/nvme-cli/build/nvme"
 
-IN_DIR="$HOME/Projects/fuzz_nvme_cli/inputs"
-OUT_DIR="$HOME/Projects/fuzz_nvme_cli/outputs"
+	IN_DIR="$HOME/Projects/fuzz_nvme_cli/inputs"
+	OUT_DIR="$HOME/Projects/fuzz_nvme_cli/outputs"
 
-$AFL_FUZZ -i "$IN_DIR" -o "$OUT_DIR" -Q -- "$NVME_CLI" @@
-```
+	$AFL_FUZZ -i "$IN_DIR" -o "$OUT_DIR" -Q -- "$NVME_CLI" @@
+	```
 7. Configure `core_pattern` to ensure core dump notifications are not sent to an external utility:
 	```text
 	[-] Hmm, your system is configured to send core dump notifications to an
@@ -88,3 +88,19 @@ $AFL_FUZZ -i "$IN_DIR" -o "$OUT_DIR" -Q -- "$NVME_CLI" @@
 	```
 12. However, this did not solve the problem. Perhaps I missed a library?
 13. I ended up setting `AFL_IGNORE_PROBLEMS=1` to see if fuzzing worked despite this.
+
+## Instrumentation at Link-Time
+We perform the same steps as above, but instead of compiling `nvme-cli` with `afl-clang-fast`, we use `afl-clang-lto` instead.
+
+The build script now looks like this:
+```bash
+#!/bin/bash
+
+AFL_ROOT_DIR="$HOME/Projects/AFLplusplus"
+BUILD_DIR="build"
+export CC="$AFL_ROOT_DIR/afl-clang-lto"
+export CXX="$AFL_ROOT_DIR/afl-clang-lto++"
+export LD="$AFL_ROOT_DIR/afl-clang-lto"
+meson "$BUILD_DIR"
+ninja -C "$BUILD_DIR"
+```
